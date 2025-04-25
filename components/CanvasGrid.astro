@@ -1,0 +1,197 @@
+---
+const {
+  gridSize = 36,
+  fadeSpeed = 0.02,
+  hoverColor = 'rgba(255,165,0,ALPHA)',
+  idleStrokeColor = 'rgba(0,0,0,0.05)',
+  maxRandomNeighbors = 4,
+  gradientOpacity = 1,
+  enableGradient = true,
+  throttleMs = 30,
+  enableTouchSupport = true
+} = Astro.props;
+---
+
+<canvas id="grid" style="position:absolute;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;"></canvas>
+
+<script define:vars={{ gridSize, fadeSpeed, hoverColor, idleStrokeColor, maxRandomNeighbors, gradientOpacity, enableGradient, throttleMs, enableTouchSupport }}>
+  const config = {
+    gridSize: Number(gridSize),
+    fadeSpeed: Number(fadeSpeed),
+    hoverColor: hoverColor,
+    idleStrokeColor: idleStrokeColor,
+    maxRandomNeighbors: Number(maxRandomNeighbors),
+    gradientOpacity: Number(gradientOpacity),
+    enableGradient: Boolean(enableGradient),
+    throttleMs: Number(throttleMs),
+    enableTouchSupport: Boolean(enableTouchSupport)
+  };
+
+  const canvas = document.getElementById("grid");
+  const ctx = canvas.getContext("2d");
+  let width, height;
+  let mouse = { x: -1000, y: -1000 };
+  let lastHoveredIndex = -1;
+  let cells = [];
+  let animationFrameId = null;
+  let lastRenderTime = 0;
+
+  // Throttle-Funktion für Performance-Optimierung
+  function throttle(callback, limit) {
+    let waiting = false;
+    return function() {
+      if (!waiting) {
+        callback.apply(this, arguments);
+        waiting = true;
+        setTimeout(function() {
+          waiting = false;
+        }, limit);
+      }
+    };
+  }
+
+  function resizeCanvas() {
+    canvas.width = width = window.innerWidth;
+    canvas.height = height = window.innerHeight;
+    initGrid();
+  }
+
+  function initGrid() {
+    cells = [];
+    const cols = Math.ceil(width / config.gridSize);
+    const rows = Math.ceil(height / config.gridSize);
+    for (let row = 0; row < rows; row++) {
+      for (let col = 0; col < cols; col++) {
+        cells.push({ x: col * config.gridSize, y: row * config.gridSize, alpha: 0 });
+      }
+    }
+  }
+
+  function getHoveredCellIndex(x, y) {
+    const col = Math.floor(x / config.gridSize);
+    const row = Math.floor(y / config.gridSize);
+    const cols = Math.ceil(width / config.gridSize);
+    return row * cols + col;
+  }
+
+  function activateRandomNeighbors(index) {
+    const cols = Math.ceil(width / config.gridSize);
+    const totalCells = cells.length;
+    const row = Math.floor(index / cols);
+    const col = index % cols;
+
+    const offsets = [
+      [-1, 0], [1, 0], [0, -1], [0, 1],
+      [-1, -1], [1, 1], [-1, 1], [1, -1]
+    ].sort(() => 0.5 - Math.random()).slice(0, config.maxRandomNeighbors);
+
+    for (const [dx, dy] of offsets) {
+      const newRow = row + dy;
+      const newCol = col + dx;
+      const neighborIndex = newRow * cols + newCol;
+      if (neighborIndex >= 0 && neighborIndex < totalCells) {
+        cells[neighborIndex].alpha = 1;
+      }
+    }
+  }
+
+  function drawGrid() {
+    ctx.clearRect(0, 0, width, height);
+
+    const hoveredIndex = getHoveredCellIndex(mouse.x, mouse.y);
+    if (hoveredIndex !== lastHoveredIndex) {
+      if (cells[hoveredIndex]) {
+        cells[hoveredIndex].alpha = 1;
+        activateRandomNeighbors(hoveredIndex);
+      }
+      lastHoveredIndex = hoveredIndex;
+    }
+
+    for (let cell of cells) {
+      if (cell.alpha > 0.01) {
+        ctx.strokeStyle = config.hoverColor.replace("ALPHA", cell.alpha.toFixed(2));
+        ctx.lineWidth = 1.5;
+      } else {
+        ctx.strokeStyle = config.idleStrokeColor;
+        ctx.lineWidth = 1;
+      }
+      ctx.strokeRect(cell.x, cell.y, config.gridSize, config.gridSize);
+      cell.alpha = Math.max(0, cell.alpha - config.fadeSpeed);
+    }
+
+    if (config.enableGradient) {
+      const gradient = ctx.createLinearGradient(0, 0, 0, height);
+      gradient.addColorStop(0, `rgba(255,255,255,${config.gradientOpacity})`);
+      gradient.addColorStop(0.15, "rgba(255,255,255,0)");
+      gradient.addColorStop(0.85, "rgba(255,255,255,0)");
+      gradient.addColorStop(1, `rgba(255,255,255,${config.gradientOpacity})`);
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, width, height);
+    }
+  }
+
+  function animate(timestamp) {
+    // Performance-Optimierung: Nur rendern, wenn nötig
+    if (!lastRenderTime || timestamp - lastRenderTime >= 16) { // ca. 60fps
+      drawGrid();
+      lastRenderTime = timestamp;
+    }
+    animationFrameId = requestAnimationFrame(animate);
+  }
+
+  // Event-Handler mit Throttling
+  const handlePointerMove = throttle((e) => {
+    const rect = canvas.getBoundingClientRect();
+    mouse.x = e.clientX - rect.left;
+    mouse.y = e.clientY - rect.top;
+  }, config.throttleMs);
+
+  // Touch-Support
+  function handleTouchMove(e) {
+    if (e.touches.length > 0) {
+      e.preventDefault();
+      const rect = canvas.getBoundingClientRect();
+      mouse.x = e.touches[0].clientX - rect.left;
+      mouse.y = e.touches[0].clientY - rect.top;
+    }
+  }
+
+  // Event-Listener hinzufügen
+  window.addEventListener("mousemove", handlePointerMove);
+  
+  // Touch-Support einschalten wenn gewünscht
+  if (config.enableTouchSupport) {
+    window.addEventListener("touchmove", throttle(handleTouchMove, config.throttleMs), { passive: false });
+    window.addEventListener("touchstart", throttle(handleTouchMove, config.throttleMs), { passive: false });
+  }
+
+  window.addEventListener("resize", throttle(resizeCanvas, 100));
+
+  // Aufräumfunktion
+  function cleanup() {
+    window.removeEventListener("mousemove", handlePointerMove);
+    if (config.enableTouchSupport) {
+      window.removeEventListener("touchmove", handleTouchMove);
+      window.removeEventListener("touchstart", handleTouchMove);
+    }
+    window.removeEventListener("resize", resizeCanvas);
+    if (animationFrameId) {
+      cancelAnimationFrame(animationFrameId);
+    }
+  }
+
+  // Komponente initialisieren
+  resizeCanvas();
+  animationFrameId = requestAnimationFrame(animate);
+
+  // Aufräumen, wenn die Komponente entfernt wird
+  document.addEventListener("astro:before-preparation", cleanup);
+  document.addEventListener("astro:page-load", () => {
+    // Wenn die Komponente auf der nächsten Seite noch existiert, neu initialisieren
+    const existingCanvas = document.getElementById("grid");
+    if (existingCanvas === canvas) {
+      resizeCanvas();
+      animationFrameId = requestAnimationFrame(animate);
+    }
+  });
+</script>

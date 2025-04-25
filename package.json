@@ -1,0 +1,33 @@
+{
+  "name": "@casoon/astro-components",
+  "version": "0.1.0",
+  "description": "Einig Komponenten für Astro-Projekte",
+  "type": "module",
+  "exports": {
+    ".": "./components/CanvasGrid.astro"
+  },
+  "files": [
+    "components"
+  ],
+  "keywords": [
+    "astro-component",
+    "astro",
+    "canvas",
+    "grid",
+    "animation",
+    "ui"
+  ],
+  "author": "",
+  "license": "MIT",
+  "peerDependencies": {
+    "astro": "^2.0.0 || ^3.0.0 || ^4.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/casoon/astro-components"
+  },
+  "bugs": {
+    "url": "https://github.com/casoon/astro-components/issues"
+  },
+  "homepage": "https://github.com/casoon/astro-components#readme"
+}

@@ -1,0 +1,33 @@
+# Astro Build
+dist/
+.output/
+.astro/
+
+# Abhängigkeiten
+node_modules/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Umgebungsvariablen
+.env
+.env.production
+.env.local
+.env.development
+
+# Editoren
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Betriebssystem
+.DS_Store
+Thumbs.db 
