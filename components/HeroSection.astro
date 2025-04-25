@@ -1,0 +1,166 @@
+---
+import SVGOverlay from './SVGOverlay.astro';
+
+interface Props {
+  logoUrl?: string;
+  background1Url?: string;
+  background2Url?: string;
+  animationDuration?: number;
+  pauseDuration?: number;
+}
+
+const {
+  logoUrl = "https://placehold.co/400/2A3B4C/FFFFFF?text=LOGO",
+  background1Url = "https://placehold.co/1920x1080/111111/FFFFFF?text=Hintergrund+1",
+  background2Url = "https://placehold.co/1920x1080/222222/FFFFFF?text=Hintergrund+2",
+  animationDuration = 5,
+  pauseDuration = 1.5
+} = Astro.props;
+---
+
+<div class="hero-section">
+  <div class="background-container">
+    <img src={background1Url} class="background bg-1" alt="Hintergrundbild 1">
+    <img src={background2Url} class="background bg-2" alt="Hintergrundbild 2">
+  </div>
+
+  <div class="logo-container">
+    <img src={logoUrl} alt="Logo" class="logo">
+  </div>
+
+  <SVGOverlay logoUrl={logoUrl} />
+</div>
+
+<script define:vars={{ animationDuration, pauseDuration }}>
+  document.addEventListener('DOMContentLoaded', () => {
+    const logo = document.querySelector('.logo');
+    const bg1 = document.querySelector('.bg-1');
+    const bg2 = document.querySelector('.bg-2');
+    const heroSection = document.querySelector('.hero-section');
+    
+    if (logo && bg1 && bg2 && heroSection) {
+      // CSS-Variablen für Animationszeiten setzen
+      heroSection.style.setProperty('--animation-duration', `${animationDuration}s`);
+      heroSection.style.setProperty('--pause-duration', `${pauseDuration}s`);
+      
+      // Animationen starten
+      heroSection.classList.add('animate');
+      
+      // Nach der definierten Pausenzeit das zweite Bild einblenden
+      setTimeout(() => {
+        bg2.classList.add('visible');
+      }, pauseDuration * 1000);
+    }
+  });
+</script>
+
+<style define:vars={{ 
+  animationDuration: `${animationDuration}s`, 
+  pauseDuration: `${pauseDuration}s`,
+  totalDuration: `${animationDuration * 2}s` 
+}}>
+  :root {
+    --animation-duration: 5s;
+    --pause-duration: 1.5s;
+    --half-duration: calc(var(--animation-duration) / 2);
+  }
+
+  .hero-section {
+    position: relative;
+    height: 100vh;
+    width: 100%;
+    overflow: hidden;
+  }
+
+  .background-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+  }
+
+  .background {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    position: absolute;
+    top: 0;
+    left: 0;
+    filter: brightness(0.6);
+  }
+  
+  .bg-1 {
+    transform: scale(1.2);
+    filter: brightness(0.4);
+  }
+  
+  .bg-2 {
+    opacity: 0;
+    transition: opacity 2.5s ease-in-out;
+  }
+  
+  .bg-2.visible {
+    opacity: 1;
+  }
+
+  .logo-container {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 3;
+    width: 150px;
+    height: 150px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .logo {
+    max-width: 100%;
+    max-height: 100%;
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  
+  /* Animationen */
+  .hero-section.animate .bg-1 {
+    animation: bg-zoom-in var(--half-duration) ease-out forwards;
+  }
+  
+  .hero-section.animate .logo {
+    animation: logo-appear var(--animation-duration) ease-out forwards;
+    animation-delay: calc(var(--half-duration));
+  }
+  
+  @keyframes bg-zoom-in {
+    0% {
+      transform: scale(1.2);
+      filter: brightness(0.4);
+    }
+    100% {
+      transform: scale(1);
+      filter: brightness(0.6);
+    }
+  }
+  
+  @keyframes logo-appear {
+    0% {
+      opacity: 0;
+      transform: scale(0.5);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  @media (max-width: 768px) {
+    .logo-container {
+      width: 100px;
+      height: 100px;
+    }
+  }
+</style> 

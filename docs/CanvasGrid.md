@@ -20,6 +20,7 @@ import CanvasGrid from '@casoon/astro-components';
     enableGradient={true}
     throttleMs={30}
     enableTouchSupport={true}
+    zIndex={-1}
   />
   <!-- Dein weiterer Inhalt hier -->
 </div>
@@ -38,6 +39,7 @@ import CanvasGrid from '@casoon/astro-components';
 | `enableGradient` | true | Aktiviert oder deaktiviert den Verlaufseffekt |
 | `throttleMs` | 30 | Verzögerung für Mausbewegungen (Throttling) in Millisekunden |
 | `enableTouchSupport` | true | Aktiviert oder deaktiviert die Unterstützung für Touchgeräte |
+| `zIndex` | -1 | CSS z-index Wert für das Canvas-Element |
 
 ## Funktionsweise
 
@@ -55,7 +57,8 @@ Die Komponente unterstützt Touch-Events auf mobilen Geräten. Diese Funktion ka
 
 ### Anpassbarkeit
 
-Der Verlaufseffekt kann vollständig deaktiviert werden, indem `enableGradient` auf `false` gesetzt wird.
+- Der Verlaufseffekt kann vollständig deaktiviert werden, indem `enableGradient` auf `false` gesetzt wird.
+- Der `zIndex` kann angepasst werden, um sicherzustellen, dass das Grid hinter oder vor anderen Elementen liegt.
 
 ## Beispiele
 
@@ -90,6 +93,16 @@ Der Verlaufseffekt kann vollständig deaktiviert werden, indem `enableGradient` 
 />
 ```
 
+### Spezifische Ebenenreihenfolge
+
+```astro
+<!-- Gitter komplett im Hintergrund -->
+<CanvasGrid zIndex={-10} />
+
+<!-- Gitter über dem Hintergrund, aber unter dem Inhalt -->
+<CanvasGrid zIndex={-1} />
+```
+
 ## Technische Details
 
 Die CanvasGrid-Komponente nutzt das HTML5 Canvas-Element für effizientes Rendering. Sie berechnet die Anzahl der Zellen basierend auf der Fenstergröße und der angegebenen Zellengröße, und aktualisiert das Raster bei Fenstergrößenänderungen.
@@ -119,3 +132,8 @@ Wenn der Hover-Effekt nicht funktioniert, stelle sicher:
 
 1. Dass JavaScript aktiviert ist
 2. Dass keine anderen JavaScript-Fehler in der Konsole angezeigt werden 
+
+Wenn das Gitter andere Elemente überlagert:
+
+1. Stelle sicher, dass der `zIndex`-Wert niedriger ist als der der Elemente, die über dem Gitter erscheinen sollen
+2. Prüfe, ob die anderen Elemente einen z-index haben und auf `position: relative` oder eine andere Positionierung eingestellt sind 
