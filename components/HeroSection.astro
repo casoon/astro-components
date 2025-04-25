@@ -5,16 +5,32 @@ interface Props {
   logoUrl?: string;
   background1Url?: string;
   background2Url?: string;
+  maskColor?: string;
   animationDuration?: number;
   pauseDuration?: number;
+  maskInitialX?: number;
+  maskInitialY?: number;
+  maskInitialWidth?: number;
+  maskInitialHeight?: number;
+  logoSize?: number;
+  logoInitialY?: number;
+  logoFinalY?: number;
 }
 
 const {
   logoUrl = "https://placehold.co/400/2A3B4C/FFFFFF?text=LOGO",
   background1Url = "https://placehold.co/1920x1080/111111/FFFFFF?text=Hintergrund+1",
   background2Url = "https://placehold.co/1920x1080/222222/FFFFFF?text=Hintergrund+2",
+  maskColor = "white",
   animationDuration = 5,
-  pauseDuration = 1.5
+  pauseDuration = 1.5,
+  maskInitialX = 45,
+  maskInitialY = 45,
+  maskInitialWidth = 10,
+  maskInitialHeight = 10,
+  logoSize = 10,
+  logoInitialY = -5,
+  logoFinalY = -40
 } = Astro.props;
 ---
 
@@ -24,29 +40,67 @@ const {
     <img src={background2Url} class="background bg-2" alt="Hintergrundbild 2">
   </div>
 
-  <div class="logo-container">
-    <img src={logoUrl} alt="Logo" class="logo">
-  </div>
+  <div class="svg-overlay-container">
+    <svg class="svg-overlay" viewBox="0 0 100 100" preserveAspectRatio="none">
+      <defs>
+        <mask id="svg-mask">
+          <rect width="100%" height="100%" fill="white" />
+          <rect 
+            id="svg-hole" 
+            class="svg-hole"
+            x={maskInitialX} 
+            y={maskInitialY} 
+            width={maskInitialWidth} 
+            height={maskInitialHeight} 
+            fill="black"
+          >
+          </rect>
+        </mask>
+      </defs>
 
-  <SVGOverlay logoUrl={logoUrl} />
+      <rect width="100%" height="100%" fill={maskColor} mask="url(#svg-mask)" />
+      
+      <g transform="translate(50, 50)">
+        <image 
+          id="svg-logo"
+          class="svg-logo"
+          href={logoUrl} 
+          x={-logoSize/2} 
+          y={logoInitialY} 
+          width={logoSize} 
+          height={logoSize}
+        >
+        </image>
+      </g>
+    </svg>
+  </div>
 </div>
 
-<script define:vars={{ animationDuration, pauseDuration }}>
+<script define:vars={{ 
+  animationDuration, 
+  pauseDuration, 
+  maskInitialX, 
+  maskInitialY, 
+  maskInitialWidth, 
+  maskInitialHeight,
+  logoInitialY,
+  logoFinalY
+}}>
   document.addEventListener('DOMContentLoaded', () => {
-    const logo = document.querySelector('.logo');
+    const svgHole = document.getElementById("svg-hole");
+    const svgLogo = document.getElementById("svg-logo");
+    const svgContainer = document.querySelector(".svg-overlay-container");
+    
     const bg1 = document.querySelector('.bg-1');
     const bg2 = document.querySelector('.bg-2');
     const heroSection = document.querySelector('.hero-section');
     
-    if (logo && bg1 && bg2 && heroSection) {
-      // CSS-Variablen für Animationszeiten setzen
+    if (svgHole && svgLogo && svgContainer && bg1 && bg2 && heroSection) {
       heroSection.style.setProperty('--animation-duration', `${animationDuration}s`);
       heroSection.style.setProperty('--pause-duration', `${pauseDuration}s`);
       
-      // Animationen starten
       heroSection.classList.add('animate');
       
-      // Nach der definierten Pausenzeit das zweite Bild einblenden
       setTimeout(() => {
         bg2.classList.add('visible');
       }, pauseDuration * 1000);
@@ -55,14 +109,23 @@ const {
 </script>
 
 <style define:vars={{ 
-  animationDuration: `${animationDuration}s`, 
+  animationDuration: `${animationDuration}s`,
   pauseDuration: `${pauseDuration}s`,
-  totalDuration: `${animationDuration * 2}s` 
+  maskInitialX: `${maskInitialX}`,
+  maskInitialY: `${maskInitialY}`,
+  maskFinalX: `0`,
+  maskFinalY: `0`,
+  maskInitialWidth: `${maskInitialWidth}`,
+  maskInitialHeight: `${maskInitialHeight}`,
+  maskFinalWidth: `100`,
+  maskFinalHeight: `100`,
+  logoInitialY: `${logoInitialY}`,
+  logoFinalY: `${logoFinalY}`
 }}>
   :root {
     --animation-duration: 5s;
+    --half-duration: calc(var(--animation-duration) * 0.5);
     --pause-duration: 1.5s;
-    --half-duration: calc(var(--animation-duration) / 2);
   }
 
   .hero-section {
@@ -105,34 +168,34 @@ const {
     opacity: 1;
   }
 
-  .logo-container {
+  .svg-overlay-container {
     position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    z-index: 3;
-    width: 150px;
-    height: 150px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
-
-  .logo {
-    max-width: 100%;
-    max-height: 100%;
-    opacity: 0;
-    transform: scale(0.5);
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2;
+    pointer-events: none;
   }
   
-  /* Animationen */
+  .svg-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+  }
+  
   .hero-section.animate .bg-1 {
     animation: bg-zoom-in var(--half-duration) ease-out forwards;
   }
   
-  .hero-section.animate .logo {
-    animation: logo-appear var(--animation-duration) ease-out forwards;
-    animation-delay: calc(var(--half-duration));
+  .hero-section.animate .svg-hole {
+    animation: hole-grow var(--animation-duration) forwards;
+  }
+  
+  .hero-section.animate .svg-logo {
+    animation: logo-rise var(--animation-duration) forwards;
   }
   
   @keyframes bg-zoom-in {
@@ -146,21 +209,52 @@ const {
     }
   }
   
-  @keyframes logo-appear {
+  @keyframes hole-grow {
     0% {
-      opacity: 0;
-      transform: scale(0.5);
+      x: var(--mask-initial-x);
+      y: var(--mask-initial-y);
+      width: var(--mask-initial-width);
+      height: var(--mask-initial-height);
+    }
+    30% {
+      x: 20;
+      y: 20;
+      width: 60;
+      height: 60;
+    }
+    40% {
+      x: 20;
+      y: 20;
+      width: 60;
+      height: 60;
     }
     100% {
-      opacity: 1;
-      transform: scale(1);
+      x: 0;
+      y: 0;
+      width: 100;
+      height: 100;
+    }
+  }
+  
+  @keyframes logo-rise {
+    0% {
+      y: var(--logo-initial-y);
+    }
+    30% {
+      y: -25;
+    }
+    40% {
+      y: -25;
+    }
+    100% {
+      y: var(--logo-final-y);
     }
   }
 
   @media (max-width: 768px) {
-    .logo-container {
-      width: 100px;
-      height: 100px;
+    .svg-logo {
+      width: 8;
+      height: 8;
     }
   }
 </style> 

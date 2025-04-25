@@ -18,7 +18,7 @@ pnpm add @casoon/astro-components
 ## Verfügbare Komponenten
 
 - [CanvasGrid](docs/CanvasGrid.md) - Eine interaktive Raster-Komponente mit Hover-Effekten
-- [SVGOverlay & HeroSection](docs/GSAPKomponenten.md) - GSAP-animierte Komponenten für moderne Landing Pages
+- [HeroSection](docs/UI-Komponenten.md) - Animierte Hero-Sektion mit Masken-Overlay
 
 ## Grundlegende Verwendung
 
@@ -34,105 +34,50 @@ import HeroSection from '@casoon/astro-components/HeroSection';
   <!-- Dein Inhalt hier -->
 </div>
 
-<!-- GSAP Hero-Sektion -->
+<!-- Hero-Sektion mit animiertem Overlay -->
 <HeroSection 
-  logoUrl="/logo.svg"
-  mainText="WILLKOMMEN<br>BEI UNS"
-  subText="Entdecke unsere Dienstleistungen"
+  logoUrl="https://placehold.co/400/2A3B4C/FFFFFF?text=LOGO"
+  background1Url="https://placehold.co/1920x1080/111111/FFFFFF?text=Hintergrund+1"
+  background2Url="https://placehold.co/1920x1080/222222/FFFFFF?text=Hintergrund+2"
 />
 ```
 
 Weitere Details zur Verwendung und Konfiguration der einzelnen Komponenten findest du in der jeweiligen Dokumentation.
 
-## Lizenz
+## HeroSection
 
-MIT 
+Eine interaktive Hero-Sektion mit animiertem Masken-Overlay und Hintergrundübergängen. Diese Komponente verwendet native CSS-Animationen für optimale Performance.
 
-# Astro GSAP Komponenten
+### Features
 
-Eine Sammlung von Astro-Komponenten mit GSAP-Animationen.
-
-## SVGOverlay
-
-Eine SVG-Overlay-Komponente mit einer animierten Maske und Logo-Bewegungen, angetrieben von GSAP.
-
-### Installation
-
-```bash
-# GSAP-Abhängigkeiten installieren
-npm install gsap
-```
-
-### Verwendung
-
-```astro
----
-import SVGOverlay from '../components/SVGOverlay.astro';
----
-
-<div style="position: relative; height: 100vh;">
-  <SVGOverlay 
-    logoUrl="/pfad/zum/logo.svg"
-    maskColor="white"
-    animationDuration={5}
-  />
-</div>
-```
+- Animiertes SVG-Overlay mit Maskeneffekt
+- Übergang zwischen zwei Hintergrundbildern
+- Anpassbare Animationszeiten und -parameter
+- Leichtgewichtig und ohne externe Abhängigkeiten
 
 ### Props
 
 | Prop | Standardwert | Beschreibung |
 |------|--------------|--------------|
-| `logoUrl` | "/logo.svg" | Pfad zum Logo SVG |
+| `logoUrl` | Platzhalter | Pfad zum Logo |
+| `background1Url` | Platzhalter | URL zum ersten Hintergrundbild |
+| `background2Url` | Platzhalter | URL zum zweiten Hintergrundbild |
 | `maskColor` | "white" | Farbe der Maske |
 | `animationDuration` | 5 | Animation Dauer in Sekunden |
+| `pauseDuration` | 1.5 | Pause zwischen Bildwechsel in Sekunden |
 | `maskInitialX` | 45 | Start X-Position der Maske |
 | `maskInitialY` | 45 | Start Y-Position der Maske |
 | `maskInitialWidth` | 10 | Start Breite der Maske |
 | `maskInitialHeight` | 10 | Start Höhe der Maske |
-| `logoSize` | 10 | Größe des Logos |
-| `logoInitialY` | -5 | Start Y-Position des Logos |
-| `logoFinalY` | -40 | End Y-Position des Logos |
 
-## HeroSection
+### Animation
 
-Eine komplette Hero-Sektion mit SVG-Overlay, animierten Menüs und Hintergrundübergängen.
+Die Animation besteht aus mehreren Phasen:
+1. Ein Loch in der weißen Overlay-Maske wächst allmählich
+2. Das Logo bewegt sich sanft nach oben
+3. Ein Übergang zwischen den beiden Hintergrundbildern erfolgt
 
-### Verwendung
-
-```astro
----
-import HeroSection from '../components/HeroSection.astro';
----
-
-<HeroSection 
-  logoUrl="/logo.svg"
-  background1Url="/hintergrund1.jpg"
-  background2Url="/hintergrund2.jpg"
-  mainText="BEISPIEL<br>ÜBERSCHRIFT"
-  subText="Ein inspirierender Untertitel."
-  logoText="Markenname"
-  clinicText="ZUSATZ"
-/>
-```
-
-### Props
-
-| Prop | Standardwert | Beschreibung |
-|------|--------------|--------------|
-| `logoUrl` | "/logo.svg" | Pfad zum Logo SVG |
-| `background1Url` | Platzhalter | URL zum ersten Hintergrundbild |
-| `background2Url` | Platzhalter | URL zum zweiten Hintergrundbild |
-| `mainText` | "WORLD'S BEST..." | Haupttext (unterstützt HTML) |
-| `subText` | "Hier gibt es..." | Untertitel |
-| `logoText` | "Sauerstoffzentrum" | Text für das Logo in der Navigationsleiste |
-| `clinicText` | "NORDOST" | Zusatztext für das Logo |
-
-## Hinweise
-
-- Beide Komponenten benötigen GSAP, das über CDN geladen wird
-- Die Komponenten sind vollständig responsive und für mobile Geräte optimiert
-- Alle Animationen und Farben können über Props oder CSS-Variablen angepasst werden
+Alle Animationsparameter können über Props angepasst werden.
 
 ## Lizenz
 

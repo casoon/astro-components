@@ -1,10 +1,11 @@
 {
   "name": "@casoon/astro-components",
-  "version": "0.2.2",
-  "description": "Einige Komponenten für Astro-Projekte",
+  "version": "0.3.0",
+  "description": "UI-Komponenten für Astro-Projekte",
   "type": "module",
   "exports": {
-    ".": "./components/CanvasGrid.astro"
+    "./CanvasGrid": "./components/CanvasGrid.astro",
+    "./HeroSection": "./components/HeroSection.astro"
   },
   "files": [
     "components"
@@ -15,7 +16,11 @@
     "canvas",
     "grid",
     "animation",
-    "ui"
+    "ui",
+    "hero-section",
+    "svg-overlay",
+    "mask-animation",
+    "css-animation"
   ],
   "author": "",
   "license": "MIT",
