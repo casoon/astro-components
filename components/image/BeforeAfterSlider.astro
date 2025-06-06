@@ -1,0 +1,159 @@
+---
+const {
+    before,
+    after,
+    altBefore = "Vorher",
+    altAfter = "Nachher",
+} = Astro.props;
+---
+
+<style>
+    .slider-container {
+        position: relative;
+        width: 100%;
+        max-width: 300px;
+        margin: 0 auto;
+        overflow: hidden;
+        user-select: none;
+        touch-action: none;
+        font-family: sans-serif;
+        background: #000;
+    }
+
+    .image-wrapper {
+        position: relative;
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .image-base,
+    .image-overlay {
+        width: 100%;
+        height: auto;
+        object-fit: contain;
+        display: block;
+    }
+
+    .image-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        clip-path: inset(0 50% 0 0);
+        z-index: 2;
+        transition: clip-path 0.3s ease;
+    }
+
+    .slider-handle {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 50%;
+        width: 3px;
+        background-color: white;
+        z-index: 3;
+        cursor: ew-resize;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: left 0.3s ease;
+    }
+
+    .slider-handle::before {
+        content: "\2194";
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        color: #333;
+        width: 28px;
+        height: 40px;
+        background-color: rgba(255, 255, 255, 0.9);
+        border: 2px solid #ccc;
+        border-radius: 6px;
+        box-shadow: 0 0 6px rgba(0, 0, 0, 0.2);
+    }
+
+    .slider-label {
+        position: absolute;
+        bottom: 10px;
+        padding: 4px 10px;
+        background: rgba(0, 0, 0, 0.6);
+        color: white;
+        font-size: 0.9rem;
+        border-radius: 4px;
+        z-index: 4;
+    }
+
+    .label-before {
+        left: 10px;
+    }
+
+    .label-after {
+        right: 10px;
+    }
+</style>
+
+<div class="slider-container" id="slider">
+    <div class="image-wrapper">
+        <img src={after} alt={altAfter} class="image-base" id="after-img" />
+        <img
+            src={before}
+            alt={altBefore}
+            class="image-overlay"
+            id="before-img"
+        />
+    </div>
+
+    <div class="slider-handle" id="handle"></div>
+    <div class="slider-label label-before">{altBefore}</div>
+    <div class="slider-label label-after">{altAfter}</div>
+</div>
+
+<script is:inline>
+    const slider = document.getElementById("slider");
+    const handle = document.getElementById("handle");
+    const beforeImg = document.getElementById("before-img");
+    const afterImg = document.getElementById("after-img");
+    const minOffset = 10;
+
+    const updateSlider = (clientX) => {
+        const rect = slider.getBoundingClientRect();
+        const x = Math.max(
+            minOffset,
+            Math.min(clientX - rect.left, rect.width - minOffset),
+        );
+        const percent = x / rect.width;
+        const percentRounded = Math.round(percent * 100);
+
+        beforeImg.style.clipPath = `inset(0 ${100 - percentRounded}% 0 0)`;
+        handle.style.left = `${percentRounded}%`;
+    };
+
+    const onPointerMove = (e) => updateSlider(e.clientX);
+
+    const onPointerUp = () => {
+        document.removeEventListener("pointermove", onPointerMove);
+        document.removeEventListener("pointerup", onPointerUp);
+    };
+
+    handle.addEventListener("pointerdown", (e) => {
+        e.preventDefault();
+        document.addEventListener("pointermove", onPointerMove);
+        document.addEventListener("pointerup", onPointerUp);
+    });
+
+    const initSlider = () => {
+        const rect = slider.getBoundingClientRect();
+        const center = rect.width / 2;
+        beforeImg.style.clipPath = `inset(0 50% 0 0)`;
+        handle.style.left = `50%`;
+    };
+
+    if (document.readyState === "complete") {
+        initSlider();
+    } else {
+        window.addEventListener("load", initSlider);
+    }
+</script>

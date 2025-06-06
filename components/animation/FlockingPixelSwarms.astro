@@ -1,0 +1,504 @@
+---
+// src/components/FlockingPixelSwarms.astro
+---
+<div class="swarm-background">
+  <canvas id="pixel-swarm"></canvas>
+</div>
+
+<style>
+  .swarm-background {
+    position: relative;
+    width: 100%;
+    height: 400px;
+    background-color: black;
+    overflow: hidden;
+  }
+
+  canvas#pixel-swarm {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+</style>
+
+<script>
+  const canvas = document.getElementById("pixel-swarm");
+  const ctx = canvas.getContext("2d");
+
+  function resize() {
+    canvas.width = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight;
+  }
+
+  window.addEventListener("resize", resize);
+  resize();
+
+  const SWARMS = 3;
+  const PARTICLES_PER_SWARM = 120;
+  const LEADER_PARTICLES = 15;
+  const NUM_GROUPS = 5;
+  const swarms = [];
+  
+  const colors = [
+    { r: 0, g: 255, b: 100 },  // Grün
+    { r: 0, g: 180, b: 255 },  // Blau
+    { r: 255, g: 80, b: 0 }    // Orange
+  ];
+
+  for (let i = 0; i < SWARMS; i++) {
+    // Startpositionen für jeden Schwarm - weit verteilt
+    let swarmCenterX, swarmCenterY, swarmAngle;
+    
+    // Jedem Schwarm einen eigenen Bereich zuweisen
+    switch(i) {
+      case 0: // Erster Schwarm in der oberen linken Hälfte
+        swarmCenterX = canvas.width * (0.2 + Math.random() * 0.2);
+        swarmCenterY = canvas.height * (0.2 + Math.random() * 0.2);
+        swarmAngle = Math.random() * Math.PI;
+        break;
+      case 1: // Zweiter Schwarm in der Mitte
+        swarmCenterX = canvas.width * (0.4 + Math.random() * 0.2);
+        swarmCenterY = canvas.height * (0.4 + Math.random() * 0.2);
+        swarmAngle = Math.random() * Math.PI * 2;
+        break;
+      case 2: // Dritter Schwarm in der unteren rechten Hälfte
+        swarmCenterX = canvas.width * (0.6 + Math.random() * 0.2);
+        swarmCenterY = canvas.height * (0.6 + Math.random() * 0.2);
+        swarmAngle = Math.PI + Math.random() * Math.PI;
+        break;
+    }
+    
+    // Getrennte Geschwindigkeiten für jeden Schwarm
+    const swarmSpeed = 0.5 + Math.random() * 0.3; // Etwas langsamere Basis-Geschwindigkeit
+    const color = colors[i];
+    
+    const particles = [];
+    
+    // Anführer definieren
+    const leader = {
+      x: swarmCenterX,
+      y: swarmCenterY,
+      angle: swarmAngle,
+      speed: swarmSpeed,
+      targetAngle: swarmAngle,
+      turnRate: 0.01 + Math.random() * 0.01,
+      turnTimer: Math.floor(Math.random() * 100),
+      turnInterval: 120 + Math.floor(Math.random() * 120),
+      size: 2.5,
+      color: color,
+      id: `leader-${i}`,
+      lastTurnTime: 0,
+      avoidCornerTimer: 0,
+      visitedQuadrants: [false, false, false, false]
+    };
+    
+    // Partikel in einer sehr breiten Formation hinzufügen
+    for (let j = 0; j < PARTICLES_PER_SWARM; j++) {
+      // Bestimmen, ob es sich um ein Führungspartikel oder ein Wolkenpartikel handelt
+      const isLeaderParticle = j < LEADER_PARTICLES;
+      
+      // Rang im Schwarm
+      let rank;
+      
+      if (isLeaderParticle) {
+        rank = j / LEADER_PARTICLES * 0.3;
+      } else {
+        rank = 0.3 + (j - LEADER_PARTICLES) / (PARTICLES_PER_SWARM - LEADER_PARTICLES) * 0.7;
+      }
+      
+      // Anfangsposition berechnen - extrem breite Verteilung
+      let distanceFromLeader, lateralSpread;
+      
+      if (isLeaderParticle) {
+        // Führungspartikel mit mehr seitlicher Streuung
+        distanceFromLeader = 5 + rank * 15; // Etwas größerer Abstand zwischen Leader-Pixeln
+        lateralSpread = (Math.random() - 0.5) * 50; // Deutlich breiter (vorher 30)
+      } else {
+        // Wolkenpartikel mit sehr viel breiterer Streuung
+        distanceFromLeader = 15 + rank * 30; // Längere Formation
+        
+        // Extrem breite Streuung für einen sehr lockeren Schwarm
+        lateralSpread = (Math.random() - 0.5) * 90; // Viel breiter (vorher 60)
+        
+        // Noch mehr vertikale Streuung
+        const verticalOffset = (Math.random() - 0.5) * 45; // Mehr vertikale Variation (vorher 30)
+        lateralSpread = isLeaderParticle ? lateralSpread : 
+                     Math.sqrt(lateralSpread * lateralSpread + verticalOffset * verticalOffset);
+      }
+      
+      // Position berechnen mit stärkerer zufälliger Komponente
+      const angle = leader.angle + (Math.random() - 0.5) * 0.5; // Noch mehr Winkelvariation (vorher 0.3)
+      const offsetX = -Math.cos(angle) * distanceFromLeader;
+      const offsetY = -Math.sin(angle) * distanceFromLeader;
+      
+      // Laterale Verschiebung berechnen
+      const perpX = -Math.sin(angle) * lateralSpread;
+      const perpY = Math.cos(angle) * lateralSpread;
+      
+      // Partikel noch etwas kleiner für bessere Sichtbarkeit der Abstände
+      const size = isLeaderParticle ? 
+                  0.9 + (1 - rank) * 0.4 : // Führungspartikel: 0.9-1.3 (vorher 1.0-1.5)
+                  0.6 + Math.random() * 0.4; // Wolkenpartikel: 0.6-1.0 (vorher 0.7-1.2)
+      
+      // Individuelle Trägheit für natürlichere Bewegung
+      const baseInertia = isLeaderParticle ? 
+                       0.8 + Math.random() * 0.1 : // Etwas mehr Variation
+                       0.7 + Math.random() * 0.2; // Noch mehr Variation in der Wolke
+      
+      // Gruppenzugehörigkeit mit mehr Gruppen
+      const group = Math.floor(Math.random() * NUM_GROUPS);
+      
+      particles.push({
+        x: leader.x + offsetX + perpX,
+        y: leader.y + offsetY + perpY,
+        vx: 0,
+        vy: 0,
+        size: size,
+        color: color,
+        opacity: isLeaderParticle ? 0.9 : 0.5 + Math.random() * 0.4, // Mehr Varianz in der Opazität
+        rank: rank,
+        inertia: baseInertia,
+        isLeaderParticle: isLeaderParticle,
+        group: group,
+        jitter: 0.03 + Math.random() * 0.09, // Etwas mehr Eigenständigkeit
+        id: `p-${i}-${j}`,
+        separationFactor: 1.0 + Math.random() * 0.5 // Individuelle Separation-Stärke
+      });
+    }
+    
+    swarms.push({ 
+      leader, 
+      particles, 
+      lastTurnTime: 0, 
+      isTurning: false,
+      lastQuadrantChangeTime: 0,
+      currentQuadrant: -1
+    });
+  }
+  
+  let lastTime = performance.now();
+  
+  function animate() {
+    const currentTime = performance.now();
+    let deltaTime = (currentTime - lastTime) / 16.67;
+    deltaTime = Math.min(deltaTime, 2.0);
+    lastTime = currentTime;
+    
+    // Sanftes Löschen für einen Nachleuchteffekt
+    ctx.fillStyle = "rgba(0, 0, 0, 0.2)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Quadranten für Anti-Stau-Logik definieren
+    const quadrants = [
+      {x: 0, y: 0, width: canvas.width/2, height: canvas.height/2},             // Oben links
+      {x: canvas.width/2, y: 0, width: canvas.width/2, height: canvas.height/2}, // Oben rechts
+      {x: 0, y: canvas.height/2, width: canvas.width/2, height: canvas.height/2}, // Unten links
+      {x: canvas.width/2, y: canvas.height/2, width: canvas.width/2, height: canvas.height/2}  // Unten rechts
+    ];
+    
+    // Jeder Schwarm bewegt sich unabhängig
+    for (let s = 0; s < swarms.length; s++) {
+      const swarm = swarms[s];
+      const leader = swarm.leader;
+      
+      // Bestimmen, in welchem Quadranten der Leader ist
+      let currentQuadrantIndex = -1;
+      for (let q = 0; q < quadrants.length; q++) {
+        const quad = quadrants[q];
+        if (leader.x >= quad.x && leader.x < quad.x + quad.width &&
+            leader.y >= quad.y && leader.y < quad.y + quad.height) {
+          currentQuadrantIndex = q;
+          break;
+        }
+      }
+      
+      // Wenn Quadrant gewechselt wurde, Zeit merken
+      if (currentQuadrantIndex !== swarm.currentQuadrant) {
+        swarm.lastQuadrantChangeTime = currentTime;
+        swarm.currentQuadrant = currentQuadrantIndex;
+        leader.visitedQuadrants[currentQuadrantIndex] = true;
+      }
+      
+      // Prüfen, ob Schwarm zu lange im selben Quadranten bleibt
+      const timeInCurrentQuadrant = currentTime - swarm.lastQuadrantChangeTime;
+      const stuckInQuadrant = timeInCurrentQuadrant > 10000; // 10 Sekunden
+      
+      // Anführer-Verhalten
+      leader.turnTimer++;
+      
+      // Normale Wendungen oder Anti-Stau-Wendung
+      let needsDirectionChange = false;
+      let targetAngle = leader.angle;
+      
+      if (stuckInQuadrant && leader.avoidCornerTimer <= 0) {
+        // Wenn zu lange im selben Quadranten, wegsteuern
+        needsDirectionChange = true;
+        leader.avoidCornerTimer = 100;
+        
+        // Richtung vom Zentrum des aktuellen Quadranten weg
+        const quadCenter = {
+          x: quadrants[currentQuadrantIndex].x + quadrants[currentQuadrantIndex].width / 2,
+          y: quadrants[currentQuadrantIndex].y + quadrants[currentQuadrantIndex].height / 2
+        };
+        
+        // Winkel vom Quadrantenzentrum zum Leader
+        const awayAngle = Math.atan2(leader.y - quadCenter.y, leader.x - quadCenter.x);
+        
+        // Zufallskomponente hinzufügen
+        targetAngle = awayAngle + (Math.random() - 0.5) * 0.5;
+      } else if (leader.turnTimer > leader.turnInterval) {
+        // Normale planmäßige Wendung
+        needsDirectionChange = true;
+        leader.turnTimer = 0;
+        leader.turnInterval = 120 + Math.floor(Math.random() * 100);
+        
+        // Ziel ist, alle Quadranten zu besuchen
+        const unvisitedQuadrants = [];
+        for (let q = 0; q < 4; q++) {
+          if (!leader.visitedQuadrants[q]) {
+            unvisitedQuadrants.push(q);
+          }
+        }
+        
+        if (unvisitedQuadrants.length > 0 && Math.random() < 0.7) {
+          // 70% Chance, einen unbesuchten Quadranten anzustreben
+          const targetQuad = unvisitedQuadrants[Math.floor(Math.random() * unvisitedQuadrants.length)];
+          const quadCenter = {
+            x: quadrants[targetQuad].x + quadrants[targetQuad].width / 2,
+            y: quadrants[targetQuad].y + quadrants[targetQuad].height / 2
+          };
+          
+          // Winkel zum Zielquadranten
+          targetAngle = Math.atan2(quadCenter.y - leader.y, quadCenter.x - leader.x);
+          // Zufallsabweichung hinzufügen
+          targetAngle += (Math.random() - 0.5) * 0.4;
+        } else {
+          // Ansonsten zufällige Richtungsänderung
+          targetAngle = leader.angle + (Math.random() * 1.5 - 0.75);
+        }
+      }
+      
+      // Richtungsänderung anwenden, wenn nötig
+      if (needsDirectionChange) {
+        leader.targetAngle = targetAngle;
+        swarm.lastTurnTime = currentTime;
+        swarm.isTurning = true;
+      }
+      
+      // Zähler für Ecken-Vermeidung reduzieren
+      if (leader.avoidCornerTimer > 0) {
+        leader.avoidCornerTimer--;
+      }
+      
+      // Beurteilen, ob der Schwarm sich dreht
+      const angleDiff = Math.abs(leader.targetAngle - leader.angle);
+      const isTurningNow = angleDiff > 0.1;
+      swarm.isTurning = isTurningNow;
+      
+      // Sanfte Annäherung an den Zielwinkel
+      const angleDirection = (leader.targetAngle - leader.angle) > 0 ? 1 : -1;
+      leader.angle += Math.min(angleDiff, 0.02) * angleDirection;
+      
+      // Leader bewegt sich
+      leader.x += Math.cos(leader.angle) * leader.speed;
+      leader.y += Math.sin(leader.angle) * leader.speed;
+      
+      // Bildschirmgrenzen - Verbesserte Behandlung
+      const buffer = 60;
+      
+      // X-Grenzen mit verbesserter Reflektionslogik
+      if (leader.x < buffer) {
+        leader.x = buffer;
+        const randomOffset = Math.random() * 0.3;
+        leader.targetAngle = Math.PI - leader.angle + randomOffset;
+        swarm.lastTurnTime = currentTime;
+        swarm.isTurning = true;
+      } else if (leader.x > canvas.width - buffer) {
+        leader.x = canvas.width - buffer;
+        const randomOffset = Math.random() * 0.3;
+        leader.targetAngle = Math.PI - leader.angle - randomOffset;
+        swarm.lastTurnTime = currentTime;
+        swarm.isTurning = true;
+      }
+      
+      // Y-Grenzen mit verbesserter Reflektionslogik
+      if (leader.y < buffer) {
+        leader.y = buffer;
+        const randomOffset = Math.random() * 0.3;
+        leader.targetAngle = -leader.angle + randomOffset;
+        swarm.lastTurnTime = currentTime;
+        swarm.isTurning = true;
+      } else if (leader.y > canvas.height - buffer) {
+        leader.y = canvas.height - buffer;
+        const randomOffset = Math.random() * 0.3;
+        leader.targetAngle = -leader.angle - randomOffset;
+        swarm.lastTurnTime = currentTime;
+        swarm.isTurning = true;
+      }
+      
+      // Spezielle Behandlung für die untere rechte Ecke
+      if (leader.x > canvas.width - buffer * 1.5 && leader.y > canvas.height - buffer * 1.5) {
+        leader.targetAngle = -Math.PI * 0.75 + (Math.random() * 0.3 - 0.15);
+        leader.x -= 10;
+        leader.y -= 10;
+        swarm.isTurning = true;
+      }
+      
+      // Leader zeichnen
+      ctx.beginPath();
+      ctx.arc(leader.x, leader.y, leader.size, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(${leader.color.r}, ${leader.color.g}, ${leader.color.b}, 1)`;
+      ctx.fill();
+      
+      // Richtungsvektor des Leaders
+      const leaderDirX = Math.cos(leader.angle);
+      const leaderDirY = Math.sin(leader.angle);
+      
+      // Einhol-Effekt berechnen
+      const timeSinceTurn = currentTime - swarm.lastTurnTime;
+      const catchUpActive = timeSinceTurn < 800 && swarm.isTurning;
+      const catchUpStrength = catchUpActive ? 
+                            Math.max(0, 1 - timeSinceTurn / 800) : 0;
+      
+      // Partikel-Interaktionen innerhalb desselben Schwarms berechnen
+      const particlePositions = [];
+      for (const p of swarm.particles) {
+        particlePositions.push({ 
+          x: p.x, 
+          y: p.y, 
+          size: p.size, 
+          separationFactor: p.separationFactor || 1.0 
+        });
+      }
+      
+      // Partikel in beliebiger Reihenfolge
+      for (const particle of swarm.particles) {
+        // Position der Zielposition berechnen - mit noch größerer Streuung
+        let distanceFromLeader, lateralVariation;
+        
+        if (particle.isLeaderParticle) {
+          // Führungspartikel mit noch mehr seitlicher Streuung
+          distanceFromLeader = 5 + particle.rank * 15;
+          lateralVariation = (Math.random() - 0.5) * 40; // Viel breiter (vorher 25)
+        } else {
+          // Wolkenpartikel mit extremer seitlicher Streuung
+          const baseDist = 15 + particle.rank * 30; // Längere Formation
+          const catchUp = catchUpActive ? catchUpStrength * 15 * (1 - particle.rank) : 0;
+          distanceFromLeader = baseDist - catchUp;
+          
+          // Sehr breite Streuung für echte Wolkenformation
+          lateralVariation = (Math.random() - 0.5) * (70 + particle.group * 20); // Viel breiter (vorher 45+15)
+        }
+        
+        // Winkeloffset basierend auf Partikelgruppe - noch größerer Offset für mehr Breite
+        // Durch die Erhöhung der Gruppenanzahl und des Offsets entstehen breitere "Flügel"
+        const angleOffset = (particle.group / (NUM_GROUPS - 1) - 0.5) * 0.7; // Viel größerer Winkeloffset (vorher 0.4)
+        
+        // Zielposition mit extremer Breiten-Variation berechnen
+        const targetAngle = leader.angle + angleOffset;
+        const targetX = leader.x - Math.cos(targetAngle) * distanceFromLeader - Math.sin(targetAngle) * lateralVariation;
+        const targetY = leader.y - Math.sin(targetAngle) * distanceFromLeader + Math.cos(targetAngle) * lateralVariation;
+        
+        // Bewegungsvektor zum Ziel
+        const dx = targetX - particle.x;
+        const dy = targetY - particle.y;
+        const distToTarget = Math.sqrt(dx * dx + dy * dy);
+        
+        // Beschleunigung berechnen - reduziert für weniger Klumpenbildung
+        let acceleration;
+        if (particle.isLeaderParticle) {
+          acceleration = 0.025 + Math.min(distToTarget / 250, 0.015); // Reduziert (vorher 0.03 + 0.02)
+        } else {
+          const baseFactor = 0.015 + Math.min(distToTarget / 350, 0.01); // Reduziert (vorher 0.02 + 0.01)
+          const extraAccel = catchUpActive ? catchUpStrength * 0.025 : 0;
+          acceleration = baseFactor + extraAccel;
+        }
+        
+        // Beschleunigung anwenden
+        particle.vx += dx * acceleration;
+        particle.vy += dy * acceleration;
+        
+        // Verstärkte Separation von anderen Partikeln im selben Schwarm
+        for (const otherPos of particlePositions) {
+          if (otherPos.x === particle.x && otherPos.y === particle.y) continue;
+          
+          const separation_dx = particle.x - otherPos.x;
+          const separation_dy = particle.y - otherPos.y;
+          const separation_dist = Math.sqrt(separation_dx * separation_dx + separation_dy * separation_dy);
+          
+          // Viel größere Mindestabstände zwischen Partikeln
+          // Kombinierte Separation-Faktoren für individuelles Verhalten
+          const combinedSeparationFactor = (particle.separationFactor || 1.0) * (otherPos.separationFactor || 1.0);
+          const minDistance = (particle.size + otherPos.size) * 3 * combinedSeparationFactor; // Viel größerer Mindestabstand (vorher nur +3)
+          
+          // Stärkere Abstoßung bei nahestehenden Partikeln
+          if (separation_dist < minDistance) {
+            const repulsionStrength = 0.08 / (separation_dist + 0.1); // Stärkere Abstoßung (vorher 0.06)
+            // Zusätzlich verstärkt durch die Nähe zum minimalen Abstand
+            const distanceFactor = 1.0 - (separation_dist / minDistance);
+            
+            particle.vx += separation_dx * repulsionStrength * (1 + distanceFactor);
+            particle.vy += separation_dy * repulsionStrength * (1 + distanceFactor);
+          }
+        }
+        
+        // Trägheit anwenden - etwas reduziert für schnelleres Separieren
+        let currentInertia = particle.isLeaderParticle ? particle.inertia : Math.min(particle.inertia, 0.9);
+        if (!particle.isLeaderParticle && catchUpActive) {
+          currentInertia = Math.max(0.7, particle.inertia - catchUpStrength * 0.1);
+        }
+        particle.vx *= currentInertia;
+        particle.vy *= currentInertia;
+        
+        // Individuelle zufällige Bewegung - etwas erhöht für mehr Eigenständigkeit
+        particle.vx += (Math.random() - 0.5) * particle.jitter * 1.2;
+        particle.vy += (Math.random() - 0.5) * particle.jitter * 1.2;
+        
+        // Geschwindigkeitsbegrenzung - etwas erhöht für schnellere Separation
+        const speed = Math.sqrt(particle.vx * particle.vx + particle.vy * particle.vy);
+        const maxSpeed = particle.isLeaderParticle ? 
+                       leader.speed * 1.2 : // Etwas schneller (vorher 1.1)
+                       leader.speed * (1.0 + catchUpStrength * 0.3); // Etwas schneller (vorher 0.9)
+        
+        if (speed > maxSpeed) {
+          particle.vx = (particle.vx / speed) * maxSpeed;
+          particle.vy = (particle.vy / speed) * maxSpeed;
+        }
+        
+        // Position aktualisieren
+        particle.x += particle.vx;
+        particle.y += particle.vy;
+        
+        // Verbesserte Randbehandlung für Partikel
+        const particleBuffer = 25;
+        if (particle.x < particleBuffer) {
+          particle.x = particleBuffer;
+          particle.vx *= -1;
+        }
+        if (particle.x > canvas.width - particleBuffer) {
+          particle.x = canvas.width - particleBuffer;
+          particle.vx *= -1;
+        }
+        if (particle.y < particleBuffer) {
+          particle.y = particleBuffer;
+          particle.vy *= -1;
+        }
+        if (particle.y > canvas.height - particleBuffer) {
+          particle.y = canvas.height - particleBuffer;
+          particle.vy *= -1;
+        }
+        
+        // Partikel zeichnen
+        ctx.beginPath();
+        ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(${particle.color.r}, ${particle.color.g}, ${particle.color.b}, ${particle.opacity})`;
+        ctx.fill();
+      }
+    }
+    
+    requestAnimationFrame(animate);
+  }
+  
+  animate();
+</script> 

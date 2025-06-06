@@ -1,12 +1,8 @@
 {
   "name": "@casoon/astro-components",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "UI-Komponenten für Astro-Projekte",
   "type": "module",
-  "exports": {
-    "./CanvasGrid": "./components/CanvasGrid.astro",
-    "./HeroSection": "./components/HeroSection.astro"
-  },
   "files": [
     "components"
   ],

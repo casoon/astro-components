@@ -1,0 +1,72 @@
+---
+// src/components/PixelGridBackground.astro
+---
+<div class="grid-background">
+  <canvas id="pixel-grid"></canvas>
+</div>
+
+<style>
+  .grid-background {
+    position: relative;
+    width: 100%;
+    height: 400px; /* anpassbar */
+    background-color: #000;
+    overflow: hidden;
+  }
+
+  canvas#pixel-grid {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+</style>
+
+<script is:client>
+  const canvas = document.getElementById('pixel-grid');
+  const ctx = canvas.getContext('2d');
+
+  function resizeCanvas() {
+    canvas.width = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight;
+  }
+
+  window.addEventListener('resize', resizeCanvas);
+  resizeCanvas();
+
+  const spacing = 20;
+  const size = 2;
+  const cols = Math.floor(canvas.width / spacing);
+  const rows = Math.floor(canvas.height / spacing);
+
+  const points = [];
+
+  for (let y = 0; y < rows; y++) {
+    for (let x = 0; x < cols; x++) {
+      points.push({
+        x: x * spacing,
+        y: y * spacing,
+        alpha: Math.random(),
+        speed: 0.005 + Math.random() * 0.01,
+      });
+    }
+  }
+
+  function animate() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    for (const point of points) {
+      point.alpha += point.speed;
+      if (point.alpha > 1 || point.alpha < 0) {
+        point.speed *= -1;
+      }
+
+      ctx.fillStyle = `rgba(0, 255, 100, ${point.alpha})`;
+      ctx.fillRect(point.x, point.y, size, size);
+    }
+
+    requestAnimationFrame(animate);
+  }
+
+  animate();
+</script> 
